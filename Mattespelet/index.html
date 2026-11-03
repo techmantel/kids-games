@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mattespelet</title>
+<style>
+  :root {
+    --bg: #f4f6fb; --card: #ffffff; --ink: #1f2937; --muted: #6b7280;
+    --accent: #4f46e5; --accent-ink: #ffffff; --good: #15803d; --good-bg: #dcfce7;
+    --bad: #b91c1c; --bad-bg: #fee2e2; --line: #e5e7eb; --hl: #fde68a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111827; --card: #1f2937; --ink: #f3f4f6; --muted: #9ca3af;
+      --accent: #818cf8; --accent-ink: #111827; --good: #86efac; --good-bg: #14532d;
+      --bad: #fca5a5; --bad-bg: #7f1d1d; --line: #374151; --hl: #854d0e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 18px/1.5 system-ui, "Segoe UI", sans-serif; }
+  main { max-width: 680px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 2rem; margin: 0 0 4px; }
+  h2 { margin: 0 0 12px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+          padding: 20px; margin-bottom: 16px; }
+  .menu { display: grid; gap: 16px; }
+  button { font: inherit; cursor: pointer; border-radius: 12px; border: 2px solid var(--accent);
+           background: var(--card); color: var(--ink); padding: 10px 16px; }
+  button:hover { background: var(--bg); }
+  button.primary { background: var(--accent); color: var(--accent-ink); }
+  button.primary:hover { opacity: .9; }
+  button.big { width: 100%; text-align: left; padding: 18px 20px; }
+  button.big b { display: block; font-size: 1.2rem; }
+  button.big span { color: var(--muted); font-size: .9rem; }
+  .top { display: flex; justify-content: space-between; align-items: center; gap: 8px;
+         margin-bottom: 12px; color: var(--muted); }
+  .top button { padding: 4px 12px; font-size: .9rem; }
+  .bar { height: 8px; background: var(--line); border-radius: 4px; margin-bottom: 16px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--accent); }
+  .tag { display: inline-block; font-size: .8rem; background: var(--bg); border: 1px solid var(--line);
+         border-radius: 999px; padding: 0 10px; color: var(--muted); margin-bottom: 8px; }
+  .eq { font-size: 2rem; text-align: center; margin: 12px 0 20px; }
+  .hl { background: var(--hl); border-radius: 6px; padding: 0 6px; }
+  .options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .options button { padding: 14px; }
+  .options button.right { background: var(--good-bg); border-color: var(--good); }
+  .options button.wrong { background: var(--bad-bg); border-color: var(--bad); }
+  .answer { display: flex; gap: 12px; }
+  .answer input { flex: 1; font: inherit; font-size: 1.3rem; padding: 10px 14px; border-radius: 12px;
+                  border: 2px solid var(--line); background: var(--bg); color: var(--ink); min-width: 0; }
+  .answer input:focus { outline: none; border-color: var(--accent); }
+  .feedback { margin-top: 16px; padding: 14px 16px; border-radius: 12px; }
+  .feedback.good { background: var(--good-bg); }
+  .feedback.bad { background: var(--bad-bg); }
+  .feedback button { margin-top: 12px; }
+  .hint { color: var(--muted); font-size: .9rem; margin-top: 12px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; font-size: .9rem; }
+  .score { font-size: 3rem; text-align: center; margin: 8px 0; }
+  ul.tips { padding-left: 20px; margin: 0; }
+  @media (max-width: 480px) { .options { grid-template-columns: 1fr; } .eq { font-size: 1.6rem; } }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+// ---------- Hjälpfunktioner ----------
+const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = arr => arr[ri(0, arr.length - 1)];
+const shuffle = arr => {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = ri(0, i); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+};
+// Visa tal med riktigt minustecken
+const f = n => (n < 0 ? "−" + Math.abs(n) : String(n));
+// Negativa tal inom parentes i uttryck
+const p = n => (n < 0 ? "(" + f(n) + ")" : String(n));
+
+const ROUNDS = 10;
+
+// ---------- Del 1: Räknesätten och deras namn ----------
+const OPS = [
+  { name: "addition",       sym: "+",      parts: ["term", "term"],              res: "summa" },
+  { name: "subtraktion",    sym: "−",      parts: ["term", "term"],              res: "differens" },
+  { name: "multiplikation", sym: "·",      parts: ["faktor", "faktor"],          res: "produkt" },
+  { name: "division",       sym: "/",      parts: ["täljare", "nämnare"],        res: "kvot" },
+];
+const ALL_NAMES = ["term", "faktor", "täljare", "nämnare", "summa", "differens", "produkt", "kvot"];
+
+function makeEquation(op) {
+  let a, b, r;
+  switch (op.name) {
+    case "addition":       a = ri(3, 40); b = ri(3, 40); r = a + b; break;
+    case "subtraktion":    a = ri(10, 60); b = ri(2, a - 1); r = a - b; break;
+    case "multiplikation": a = ri(2, 12); b = ri(2, 12); r = a * b; break;
+    default:               b = ri(2, 9); r = ri(2, 12); a = b * r;
+  }
+  return { a, b, r };
+}
+
+// En omgång i del 1 täcker alla namn: räknesättets namn, svarets namn och talens namn för varje räknesätt.
+// t är "name", "res" eller talets plats (0 eller 1). Addition/subtraktion/multiplikation har samma namn
+// på båda talen, så där räcker en av platserna.
+function deck1() {
+  const tasks = [];
+  OPS.forEach((op, i) => {
+    tasks.push({ op: i, t: "name", topic: op.name }, { op: i, t: "res", topic: op.res });
+    const positions = op.parts[0] === op.parts[1] ? [pick([0, 1])] : [0, 1];
+    positions.forEach(pos => tasks.push({ op: i, t: pos, topic: `${op.parts[pos]} (i ${op.name})` }));
+  });
+  return shuffle(tasks);
+}
+
+// Vilka frågetyper (kind nedan) som testar respektive sak
+const KINDS = { name: [0, 4, 5], res: [1, 3], 0: [2, 3], 1: [2, 3] };
+
+function question1(task) {
+  const op = OPS[task.op];
+  const kind = pick(KINDS[task.t]);
+  const names = OPS.map(o => o.name);
+  const mc = (text, correct, options, expl) =>
+    ({ type: "mc", text, correct, options: shuffle(options), expl });
+
+  if (kind === 0) {
+    const { a, b } = makeEquation(op);
+    return mc(`<div class="eq">${a} ${op.sym} ${b}</div>Vilket räknesätt är detta?`,
+              op.name, names, `${a} ${op.sym} ${b} är en <b>${op.name}</b>.`);
+  }
+  if (kind === 1) {
+    return mc(`Vad kallas <b>svaret</b> i en ${op.name}?`, op.res, OPS.map(o => o.res),
+              `Svaret i en ${op.name} heter <b>${op.res}</b>.`);
+  }
+  if (kind === 2) {
+    const label = o => `${o.parts[0]} och ${o.parts[1]}`;
+    // Addition och subtraktion har båda "term och term", så ta bort dubbletten och lägg till en lockfråga
+    const options = [...new Set(OPS.map(label)), "summa och differens"];
+    return mc(`Vad kallas <b>talen</b> man räknar med i en ${op.name}?`, label(op), options,
+              `Talen i en ${op.name} heter <b>${label(op)}</b>.`);
+  }
+  if (kind === 3) {
+    const { a, b, r } = makeEquation(op);
+    const pos = task.t === "res" ? 2 : task.t;
+    const val = [a, b, r];
+    const correct = pos === 2 ? op.res : op.parts[pos];
+    const html = [a, b, r].map((v, i) => i === pos ? `<span class="hl">${v}</span>` : v);
+    const eq = `${html[0]} ${op.sym} ${html[1]} = ${html[2]}`;
+    const distractors = shuffle(ALL_NAMES.filter(n => n !== correct)).slice(0, 3);
+    return mc(`<div class="eq">${eq}</div>Vad heter det markerade talet (${val[pos]})?`,
+              correct, [correct, ...distractors],
+              `I en ${op.name} heter talen <b>${op.parts.join(" och ")}</b> och svaret <b>${op.res}</b>.`);
+  }
+  if (kind === 4) {
+    return mc(`Vilket räknesätt ger en <b>${op.res}</b>?`, op.name, names,
+              `En ${op.res} är svaret i en <b>${op.name}</b>.`);
+  }
+  const extra = op.name === "division" ? " (man skriver också : eller ÷, eller som ett bråk med täljaren ovanför nämnaren)" : "";
+  return mc(`Vilket räknetecken hör till <b>${op.name}</b>?`, op.sym, OPS.map(o => o.sym),
+            `Räknetecknet för ${op.name} är <b>${op.sym}</b>${extra}.`);
+}
+
+// ---------- Del 2: Klurigare textuppgifter ----------
+const WORD_PROBLEMS = [
+  // Parenteser
+  () => {
+    const n = ri(3, 6), a = ri(12, 40), b = ri(5, 25);
+    return { tag: "Parenteser", answer: n * (a + b),
+      text: `${n} kompisar går på bio. En biljett kostar ${a} kr och alla köper dessutom popcorn för ${b} kr. Hur mycket betalar de tillsammans?`,
+      expl: `Biljett + popcorn hör ihop, så de står i en parentes: ${n} · (${a} + ${b}) = ${n} · ${a + b} = ${n * (a + b)}` };
+  },
+  () => {
+    const n = ri(2, 5), a = ri(20, 60) * 10, b = ri(3, 15) * 10;
+    return { tag: "Parenteser", answer: n * (a - b),
+      text: `En jacka kostar ${a} kr. Just nu är det ${b} kr rabatt på varje jacka. Hur mycket kostar ${n} jackor?`,
+      expl: `Först priset efter rabatt, sedan gånger antalet: ${n} · (${a} − ${b}) = ${n} · ${a - b} = ${n * (a - b)}` };
+  },
+  () => {
+    const n = ri(3, 5), q = ri(10, 30), a = ri(15, n * q - 5), b = n * q - a;
+    return { tag: "Division + parentes", answer: q,
+      text: `${n} vänner delar lika på kostnaden för en hyrbil. Hyran är ${a} kr och bensinen ${b} kr. Hur mycket betalar var och en?`,
+      expl: `Hela kostnaden delas på ${n}: (${a} + ${b}) : ${n} = ${a + b} : ${n} = ${q}` };
+  },
+  () => {
+    const k = ri(3, 8), q = ri(4, 9), left = ri(1, k - 1);
+    return { tag: "Division", answer: q,
+      text: `På en skola finns ${k * q + left} elever. ${left} av dem är sjuka och resten delas in i lag med ${k} elever i varje. Hur många lag blir det?`,
+      expl: `${k * q + left} − ${left} = ${k * q} friska elever. ${k * q} : ${k} = ${q} lag.` };
+  },
+  // Negativa tal
+  () => {
+    const a = ri(2, 12), b = ri(3, 20);
+    return { tag: "Negativa tal", answer: -a + b,
+      text: `Klockan 06 var det ${f(-a)} °C. Till klockan 14 hade temperaturen stigit med ${b} grader. Vad visar termometern då?`,
+      expl: `${f(-a)} + ${b} = ${f(-a + b)}` };
+  },
+  () => {
+    const b = ri(2, 10), c = ri(b + 1, b + 15);
+    return { tag: "Negativa tal", answer: b - c,
+      text: `Det är ${b} °C på kvällen. Under natten sjunker temperaturen med ${c} grader. Hur varmt (eller kallt) är det på morgonen?`,
+      expl: `${b} − ${c} = ${f(b - c)}` };
+  },
+  () => {
+    const s = ri(1, 3), u = ri(4, 9), d = ri(5, 12);
+    return { tag: "Negativa tal", answer: -s + u - d,
+      text: `I ett höghus är källaren våning ${f(-s)}. Anna står i källaren på våning ${f(-s)}, åker ${u} våningar upp och sedan ${d} våningar ned. På vilken våning hamnar hon?`,
+      expl: `${f(-s)} + ${u} − ${d} = ${f(-s + u)} − ${d} = ${f(-s + u - d)}` };
+  },
+  () => {
+    const a = ri(100, 500), b = ri(200, 900), c = ri(50, 300);
+    return { tag: "Negativa tal", answer: -a + b - c,
+      text: `Ett konto visar ${f(-a)} kr (en skuld). Du sätter in ${b} kr och betalar sedan en räkning på ${c} kr. Vad visar kontot nu?`,
+      expl: `${f(-a)} + ${b} − ${c} = ${f(-a + b)} − ${c} = ${f(-a + b - c)}` };
+  },
+  // Absolutbelopp
+  () => {
+    const a = ri(20, 90), b = ri(10, 60);
+    return { tag: "Absolutbelopp", answer: a + b,
+      text: `En ubåt ligger på höjden ${f(-a)} m (alltså ${a} m under havsytan) och en helikopter flyger på ${b} m över havet. Hur många meter är det mellan dem? Tips: avståndet är |höjd1 − höjd2|.`,
+      expl: `|${b} − (${f(-a)})| = |${b} + ${a}| = |${a + b}| = ${a + b}` };
+  },
+  () => {
+    let x = ri(11, 17), y = ri(35, 55);
+    if (Math.random() < 0.5) [x, y] = [y, x];
+    return { tag: "Absolutbelopp", answer: Math.abs(x - y),
+      text: `Mias ena släkting är ${x} år och den andra är ${y} år. Hur stor är åldersskillnaden? Räkna ut |${x} − ${y}|.`,
+      expl: `|${x} − ${y}| = |${f(x - y)}| = ${Math.abs(x - y)}. Absolutbeloppet är avståndet till noll, så det blir aldrig negativt.` };
+  },
+  () => {
+    const a = ri(3, 12), b = ri(2, 9), c = ri(10, 40);
+    return { tag: "Absolutbelopp", answer: a * b - c,
+      text: `Beräkna |${f(-a)}| · ${b} − ${c}.`,
+      expl: `|${f(-a)}| = ${a}, så ${a} · ${b} − ${c} = ${a * b} − ${c} = ${f(a * b - c)}` };
+  },
+  () => {
+    const x = ri(2, 5), a = ri(15, 30), b = ri(1, 15), c = ri(16, 30);
+    return { tag: "Parenteser + absolutbelopp", answer: x * (a - Math.abs(b - c)),
+      text: `Beräkna ${x} · (${a} − |${b} − ${c}|).`,
+      expl: `Innersta först: |${b} − ${c}| = |${f(b - c)}| = ${Math.abs(b - c)}. Sedan parentesen: ${a} − ${Math.abs(b - c)} = ${a - Math.abs(b - c)}. Till sist: ${x} · ${f(a - Math.abs(b - c))} = ${f(x * (a - Math.abs(b - c)))}` };
+  },
+  // Flera räknesätt
+  () => {
+    const a = ri(3, 8), b = ri(5, 15), c = ri(2, 6), d = ri(8, 20);
+    const total = a * b + c * d, e = Math.ceil((total + 1) / 50) * 50;
+    return { tag: "Flera räknesätt", answer: e - total,
+      text: `Sara köper ${a} pennor för ${b} kr styck och ${c} suddgummin för ${d} kr styck. Hon betalar med ${e} kr. Hur mycket får hon tillbaka?`,
+      expl: `Multiplikation före subtraktion: ${e} − (${a} · ${b} + ${c} · ${d}) = ${e} − (${a * b} + ${c * d}) = ${e} − ${total} = ${e - total}` };
+  },
+  () => {
+    const a = ri(2, 9), b = ri(2, 9), c = ri(10, 40);
+    return { tag: "Negativa tal", answer: -a * b + c,
+      text: `Beräkna (${f(-a)}) · ${b} + ${c}.`,
+      expl: `Multiplikation först: (${f(-a)}) · ${b} = ${f(-a * b)}. Sedan ${f(-a * b)} + ${c} = ${f(-a * b + c)}` };
+  },
+  () => {
+    const d = ri(2, 5), e = ri(6, 15), g = ri(2, 6), h = ri(3, 12), q = ri(2, 6);
+    const rest = e - 1; // (e − 1) multipliceras med g, och dividerar sedan jämnt via q
+    const prod = rest * g * q; // delbart med q
+    const total = d + prod / q;
+    return { tag: "Flera räknesätt", answer: total,
+      text: `Beräkna ${d} + ${rest} · ${g} · ${q} : ${q}.`,
+      expl: `Multiplikation och division räknas från vänster: ${rest} · ${g} · ${q} : ${q} = ${prod} : ${q} = ${prod / q}. Sedan ${d} + ${prod / q} = ${total}` };
+  },
+];
+
+// En omgång i del 2: ROUNDS olika uppgiftsmallar
+function deck2() {
+  return shuffle(WORD_PROBLEMS.map((_, i) => i)).slice(0, ROUNDS).map(i => ({ tpl: i }));
+}
+
+function question2(task) {
+  return { type: "num", ...WORD_PROBLEMS[task.tpl]() };
+}
+
+// Fel svar: samma sak kommer tillbaka (med nya tal) efter så här många andra frågor
+const RETRY_AFTER = 3;
+
+// ---------- Gränssnitt ----------
+if (typeof document !== "undefined") {
+  const app = document.getElementById("app");
+  // { id, queue, total, done, firstTry, missed, task, q, answered }
+  let game = null;
+
+  const deckFor = id => (id === "del1" ? deck1() : deck2());
+  const best = id => {
+    let s = null;
+    try { s = localStorage.getItem("matte-" + id); } catch {}
+    return s === null ? "–" : `${s}/${deckFor(id).length}`;
+  };
+  const saveBest = (id, s) => {
+    try { if (s > Number(localStorage.getItem("matte-" + id) || -1)) localStorage.setItem("matte-" + id, s); } catch {}
+  };
+
+  window.home = function () {
+    game = null;
+    app.innerHTML = `
+      <h1>Mattespelet</h1>
+      <p class="sub">Välj ett spel. Svarar du fel kommer en ny fråga om samma sak lite senare.</p>
+      <div class="menu">
+        <button class="big" onclick="learn()"><b>Del 1: Räknesätten</b>
+          <span>Addition, subtraktion, multiplikation, division – och vad talen och svaren heter. Alla namn kommer med. Bästa resultat (rätt direkt): ${best("del1")}</span></button>
+        <button class="big" onclick="start('del2')"><b>Del 2: Klurig textmatte</b>
+          <span>Textuppgifter med heltal, parenteser och absolutbelopp. Bästa resultat (rätt direkt): ${best("del2")}</span></button>
+      </div>`;
+  };
+
+  window.learn = function () {
+    app.innerHTML = `
+      <div class="top"><button onclick="home()">← Meny</button></div>
+      <h2>Läs först: räknesätten</h2>
+      <div class="card"><table>
+        <tr><th>Räknesätt</th><th>Så ser det ut</th><th>Talen</th><th>Svaret</th></tr>
+        <tr><td>Addition</td><td>3 + 4 = 7</td><td>term + term</td><td><b>summa</b></td></tr>
+        <tr><td>Subtraktion</td><td>9 − 4 = 5</td><td>term − term</td><td><b>differens</b></td></tr>
+        <tr><td>Multiplikation</td><td>3 · 4 = 12</td><td>faktor · faktor</td><td><b>produkt</b></td></tr>
+        <tr><td>Division</td><td>12 / 4 = 3</td><td>täljare / nämnare</td><td><b>kvot</b></td></tr>
+      </table></div>
+      <button class="primary" onclick="start('del1')">Jag är redo – spela!</button>`;
+  };
+
+  window.start = function (id) {
+    const queue = deckFor(id);
+    game = { id, queue, total: queue.length, done: 0, firstTry: 0, missed: new Set(), task: null, q: null, answered: false };
+    next();
+  };
+
+  function next() {
+    game.task = game.queue.shift();
+    game.q = game.id === "del1" ? question1(game.task) : question2(game.task);
+    game.answered = false;
+    render();
+  }
+
+  function header() {
+    const left = game.queue.length + 1;
+    return `
+      <div class="top"><button onclick="home()">← Meny</button>
+        <span>${left} ${left === 1 ? "fråga" : "frågor"} kvar · Rätt direkt: ${game.firstTry}</span></div>
+      <div class="bar"><i style="width:${(game.done / (game.done + left)) * 100}%"></i></div>
+      ${game.task.retry ? `<span class="tag">🔁 Ny chans</span>` : ""}`;
+  }
+
+  function render() {
+    const q = game.q;
+    if (q.type === "mc") {
+      app.innerHTML = header() + `<div class="card">${q.text}
+        <div class="options" style="margin-top:16px">
+          ${q.options.map((o, i) => `<button data-i="${i}">${o}</button>`).join("")}
+        </div><div id="fb"></div></div>`;
+      app.querySelectorAll(".options button").forEach(b => b.onclick = () => answerMc(b));
+    } else {
+      app.innerHTML = header() + `<div class="card">
+        <span class="tag">${q.tag}</span>
+        <p style="margin-top:0">${q.text}</p>
+        <div class="answer">
+          <input id="inp" inputmode="text" autocomplete="off" placeholder="Ditt svar (heltal)">
+          <button class="primary" id="go">Svara</button>
+        </div>
+        <div class="hint">Tips: negativa tal skriver du med minustecken, t.ex. -5.</div>
+        <div id="fb"></div></div>`;
+      const inp = document.getElementById("inp");
+      inp.focus();
+      inp.onkeydown = e => { if (e.key === "Enter") answerNum(); };
+      document.getElementById("go").onclick = answerNum;
+    }
+  }
+
+  function finish(ok, expl) {
+    const task = game.task;
+    if (ok && !task.retry) game.firstTry++;
+    if (!ok) {
+      game.missed.add(task.topic || game.q.tag);
+      game.queue.splice(Math.min(RETRY_AFTER, game.queue.length), 0, { ...task, retry: true });
+    }
+    game.answered = true;
+    game.done++;
+    const last = game.queue.length === 0;
+    document.getElementById("fb").innerHTML = `
+      <div class="feedback ${ok ? "good" : "bad"}">
+        <b>${ok ? "Rätt! 🎉" : "Inte riktigt."}</b><br>${expl}
+        ${ok ? "" : "<br><i>Du får en ny fråga om detta lite senare.</i>"}<br>
+        <button class="primary" id="nx">${last ? "Se resultat" : "Nästa fråga"}</button>
+      </div>`;
+    const nx = document.getElementById("nx");
+    nx.focus();
+    nx.onclick = () => (last ? result() : next());
+  }
+
+  function answerMc(btn) {
+    if (game.answered) return;
+    const q = game.q;
+    const ok = q.options[Number(btn.dataset.i)] === q.correct;
+    app.querySelectorAll(".options button").forEach(b => {
+      b.disabled = true;
+      if (q.options[Number(b.dataset.i)] === q.correct) b.classList.add("right");
+    });
+    if (!ok) btn.classList.add("wrong");
+    finish(ok, q.expl);
+  }
+
+  function answerNum() {
+    if (game.answered) return;
+    const inp = document.getElementById("inp");
+    const raw = inp.value.trim().replace(/−/g, "-").replace(/\s/g, "");
+    if (!/^-?\d+$/.test(raw)) { inp.focus(); inp.placeholder = "Skriv ett heltal, t.ex. 12 eller -3"; inp.value = ""; return; }
+    inp.disabled = true;
+    document.getElementById("go").disabled = true;
+    const ok = Number(raw) === game.q.answer;
+    finish(ok, ok ? game.q.expl : `Rätt svar är <b>${f(game.q.answer)}</b>.<br>${game.q.expl}`);
+  }
+
+  function result() {
+    saveBest(game.id, game.firstTry);
+    const s = game.firstTry, n = game.total, id = game.id;
+    const share = s / n;
+    const msg = s === n ? "Perfekt! Allt rätt direkt! 🏆" : share >= 0.8 ? "Mycket bra jobbat! 🌟"
+              : share >= 0.5 ? "Bra! Lite mer övning så sitter det. 👍" : "Fortsätt öva – du blir bättre för varje omgång! 💪";
+    const missed = game.missed.size
+      ? `<p><b>Öva lite extra på:</b></p><ul class="tips">${[...game.missed].map(m => `<li>${m}</li>`).join("")}</ul>`
+      : "";
+    app.innerHTML = `
+      <div class="card"><h2 style="text-align:center">Klar!</h2>
+        <div class="score">${s} / ${n}</div>
+        <p style="text-align:center">rätt på första försöket<br>${msg}</p>
+        ${missed}
+        <div style="display:flex; gap:12px; justify-content:center">
+          <button class="primary" onclick="start('${id}')">Spela igen</button>
+          <button onclick="home()">Till menyn</button>
+        </div></div>`;
+  }
+
+  home();
+}
+
+if (typeof module !== "undefined") module.exports = { deck1, deck2, question1, question2, WORD_PROBLEMS };
+</script>
+</body>
+</html>

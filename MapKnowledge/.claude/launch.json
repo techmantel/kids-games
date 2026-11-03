@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "euro-explorer",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": ["-NoProfile", "-File", "C:\\Users\\andreasb\\AppData\\Local\\Temp\\claude\\C--Users-andreasb-Repos-MapKnowledge\\fbc3593c-5a58-417f-99f7-c11b6538a7a5\\scratchpad\\serve.ps1"],
+      "port": 8123
+    }
+  ]
+}

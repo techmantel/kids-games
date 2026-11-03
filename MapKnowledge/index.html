@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Euro Explorer</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- HOME -->
+  <section id="home" class="screen">
+    <div class="home-inner">
+      <div class="logo">Euro <span>Explorer</span> 🌍</div>
+      <div class="finn">
+        <div class="finn-face">🦊</div>
+        <div class="bubble" id="finn-hello">Hi, explorer! I'm Finn. Ready to learn all of Europe?</div>
+      </div>
+
+      <h2>1. Pick a game</h2>
+      <div class="cards" id="mode-cards">
+        <button class="card" data-mode="find"><span class="ico">📍</span><b>Find it!</b><small>Click the country on the map</small></button>
+        <button class="card" data-mode="name"><span class="ico">🔦</span><b>Name it!</b><small>Which country is glowing?</small></button>
+        <button class="card" data-mode="capital"><span class="ico">🏙️</span><b>Capitals</b><small>Match country and capital</small></button>
+        <button class="card" data-mode="mix"><span class="ico">🎲</span><b>Surprise me</b><small>A mix of everything</small></button>
+        <button class="card" data-mode="explore"><span class="ico">🔍</span><b>Explore</b><small>No score, just look around</small></button>
+      </div>
+
+      <h2>2. Pick where</h2>
+      <div class="chips" id="region-chips"></div>
+
+      <div id="length-box">
+        <h2>3. How many questions?</h2>
+        <div class="chips" id="length-chips">
+          <button class="chip" data-len="10">10</button>
+          <button class="chip" data-len="20">20</button>
+          <button class="chip" data-len="0">All</button>
+        </div>
+      </div>
+
+      <label id="quick-box" class="toggle"><input type="checkbox" id="quick-toggle"> ⚡ Quick mode: skip the fun facts</label>
+
+      <button id="start-btn" class="big-btn">Let's go! 🚀</button>
+      <div class="home-foot">
+        <button id="passport-btn" class="link-btn">🛂 My passport <span id="passport-count"></span></button>
+        <span id="best-score"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section id="game" class="screen hidden">
+    <header class="hud">
+      <button id="home-btn" class="icon-btn" title="Back to menu" aria-label="Back to menu">🏠</button>
+      <div class="hud-stat"><small>Score</small><b id="score">0</b></div>
+      <div class="hud-stat" id="streak-box"><small>Streak</small><b id="streak">0</b></div>
+      <div class="progress"><div id="progress-bar"></div><span id="progress-text"></span></div>
+      <button id="mute-btn" class="icon-btn" title="Sound on/off" aria-label="Sound on/off">🔊</button>
+    </header>
+
+    <div class="question" id="question">
+      <span class="q-fox">🦊</span><span id="q-text"></span>
+      <button id="hint-btn" class="small-btn">🔍 Hint</button>
+      <button id="skip-btn" class="small-btn">Skip ⏭</button>
+    </div>
+
+    <div id="mapwrap">
+      <svg id="map" viewBox="0 0 1000 760" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="zoom">
+        <button id="zoom-in" aria-label="Zoom in">+</button>
+        <button id="zoom-out" aria-label="Zoom out">−</button>
+        <button id="zoom-reset" aria-label="Reset zoom">⟲</button>
+      </div>
+      <div id="toast"></div>
+      <div id="info-card" class="hidden"></div>
+    </div>
+
+    <div id="choices" class="choices hidden"></div>
+  </section>
+
+  <!-- END -->
+  <section id="end" class="screen hidden">
+    <div class="home-inner end-inner">
+      <div class="stars" id="end-stars"></div>
+      <h1 id="end-title"></h1>
+      <p id="end-text"></p>
+      <div class="end-stats">
+        <div><small>Score</small><b id="end-score"></b></div>
+        <div><small>First-try</small><b id="end-acc"></b></div>
+        <div><small>Best streak</small><b id="end-streak"></b></div>
+      </div>
+      <div id="end-tricky"></div>
+      <button id="again-btn" class="big-btn">Play again 🔁</button>
+      <button id="menu-btn" class="link-btn">Back to menu</button>
+    </div>
+  </section>
+
+  <!-- PASSPORT -->
+  <div id="passport" class="modal hidden">
+    <div class="modal-box">
+      <button class="icon-btn close" id="passport-close" aria-label="Close">✖</button>
+      <h2>🛂 My Passport</h2>
+      <p>Get a country right on your first try to earn its stamp!</p>
+      <div id="passport-grid"></div>
+    </div>
+  </div>
+
+  <canvas id="fx"></canvas>
+</div>
+
+<script src="lib/d3-array.min.js"></script>
+<script src="lib/d3-geo.min.js"></script>
+<script src="lib/topojson-client.min.js"></script>
+<script src="lib/world-data.js"></script>
+<script src="data.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
