@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kemispelet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧪</text></svg>">
+<title>Kemispelet</title>
+<style>
+  :root {
+    --bg: #f4f6fb; --card: #ffffff; --ink: #1f2937; --muted: #6b7280;
+    --accent: #0f766e; --accent-ink: #ffffff; --good: #15803d; --good-bg: #dcfce7;
+    --bad: #b91c1c; --bad-bg: #fee2e2; --line: #e5e7eb; --sel: #ccfbf1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111827; --card: #1f2937; --ink: #f3f4f6; --muted: #9ca3af;
+      --accent: #2dd4bf; --accent-ink: #111827; --good: #86efac; --good-bg: #14532d;
+      --bad: #fca5a5; --bad-bg: #7f1d1d; --line: #374151; --sel: #134e4a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 18px/1.5 system-ui, "Segoe UI", sans-serif; }
+  main { max-width: 680px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 2rem; margin: 0 0 4px; }
+  h2 { margin: 0 0 12px; }
+  h3 { margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+          padding: 20px; margin-bottom: 16px; }
+  .menu { display: grid; gap: 16px; }
+  button { font: inherit; cursor: pointer; border-radius: 12px; border: 2px solid var(--accent);
+           background: var(--card); color: var(--ink); padding: 10px 16px;
+           touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  button:hover { background: var(--bg); }
+  button:disabled { cursor: default; color: var(--ink); }
+  button.primary { background: var(--accent); color: var(--accent-ink); }
+  button.primary:hover { opacity: .9; }
+  button.big { width: 100%; text-align: left; padding: 18px 20px; }
+  button.big b { display: block; font-size: 1.2rem; }
+  button.big span { color: var(--muted); font-size: .9rem; }
+  .top { display: flex; justify-content: space-between; align-items: center; gap: 8px;
+         margin-bottom: 12px; color: var(--muted); }
+  .top button { padding: 4px 12px; font-size: .9rem; flex: none; }
+  .bar { height: 8px; background: var(--line); border-radius: 4px; margin-bottom: 16px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--accent); }
+  .tag { display: inline-block; font-size: .8rem; background: var(--bg); border: 1px solid var(--line);
+         border-radius: 999px; padding: 0 10px; color: var(--muted); margin-bottom: 8px; }
+  .center { text-align: center; }
+  .prompt { text-align: center; margin: 4px 0 16px; }
+  .word { font-size: 2rem; font-weight: 700; text-align: center; margin: 12px 0 8px; }
+  /* Ruta som i periodiska systemet */
+  .tile { display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+          width: 104px; height: 104px; border: 2px solid var(--accent); border-radius: 12px;
+          background: var(--bg); margin-bottom: 12px; }
+  .tile small { color: var(--muted); font-size: .8rem; line-height: 1.2; }
+  .tile b { font-size: 2.6rem; line-height: 1.1; }
+  .tile.wide { width: auto; min-width: 104px; padding: 0 20px; }
+  .tile.mini { width: 52px; height: 52px; margin: 0; border-width: 1.5px; border-radius: 8px; flex: none; }
+  .tile.mini small { font-size: .62rem; }
+  .tile.mini b { font-size: 1.25rem; }
+  .options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .options button { padding: 14px; }
+  .options.syms button { font-size: 1.4rem; font-weight: 700; padding: 10px; }
+  .options.long { grid-template-columns: 1fr; }
+  .options.long button { text-align: left; }
+  .options.multi { grid-template-columns: repeat(3, 1fr); }
+  .options.multi button::before { content: "☐ "; }
+  .options.multi button.sel::before { content: "☑ "; }
+  .options.multi button.sel:not(.right):not(.wrong) { background: var(--sel); }
+  .options.models button { display: flex; align-items: center; justify-content: center; min-height: 110px; padding: 6px; }
+  .model { max-width: 100%; height: auto; display: inline-block; vertical-align: middle; }
+  .wide-btn { width: 100%; margin-top: 12px; }
+  .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 8px; text-align: center; }
+  .gallery > div { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+  .gallery span { color: var(--muted); font-size: .85rem; }
+  .options button.right, .pairs button.right { background: var(--good-bg); border-color: var(--good); }
+  .options button.wrong, .pairs button.wrong { background: var(--bad-bg); border-color: var(--bad); }
+  .answer { display: flex; gap: 12px; }
+  .answer input { flex: 1; font: inherit; font-size: 1.3rem; padding: 10px 14px; border-radius: 12px;
+                  border: 2px solid var(--line); background: var(--bg); color: var(--ink); min-width: 0; }
+  .answer input:focus { outline: none; border-color: var(--accent); }
+  .pairs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+  .pairs > div { display: grid; gap: 10px; align-content: start; }
+  .pairs button { padding: 0 6px; height: 52px; }
+  .pairs button.sym { font-size: 1.25rem; font-weight: 700; }
+  .pairs button.sel { background: var(--sel); border-width: 3px; }
+  .pairs button.right { opacity: .65; }
+  .feedback { margin-top: 16px; padding: 14px 16px; border-radius: 12px; }
+  .feedback.good { background: var(--good-bg); }
+  .feedback.bad { background: var(--bad-bg); }
+  .feedback button { margin-top: 12px; }
+  .hint { color: var(--muted); font-size: .9rem; margin-top: 12px; }
+  .el { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .el:last-child { border-bottom: 0; }
+  .el b { font-size: 1.1rem; }
+  .el span { display: block; color: var(--muted); font-size: .9rem; line-height: 1.35; }
+  .el > div:last-child { min-width: 0; }
+  .score { font-size: 3rem; text-align: center; margin: 8px 0; }
+  ul.tips { padding-left: 20px; margin: 0 0 16px; }
+  .btnrow { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  @media (max-width: 480px) {
+    main { padding: 16px 16px calc(32px + env(safe-area-inset-bottom)); }
+    h1 { font-size: 1.7rem; }
+    .options:not(.syms):not(.models) { grid-template-columns: 1fr; }
+    .options.multi button { text-align: left; }
+    .card { padding: 16px; }
+    .answer { gap: 8px; }
+    .answer input { width: 100%; }
+    .top { font-size: .85rem; }
+    .pairs { gap: 10px; }
+  }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+// ---------- Hjälpfunktioner ----------
+const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = arr => arr[ri(0, arr.length - 1)];
+const shuffle = arr => {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = ri(0, i); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+};
+
+// ---------- Grundämnena från bokens uppgifter ----------
+// hard: symbolen liknar inte det svenska namnet. traps: symboler som är lätta att blanda ihop med denna.
+const ELEMENTS = [
+  { sym: "H",  name: "väte",      z: 1,  hard: true, traps: ["He", "Hg"],             tip: "Från latinets <i>hydrogenium</i> (engelska: hydrogen)." },
+  { sym: "He", name: "helium",    z: 2,              traps: ["H", "Hg", "Ne"],        tip: "De två första bokstäverna i helium." },
+  { sym: "Li", name: "litium",    z: 3,              traps: ["Al", "I"],              tip: "De två första bokstäverna i litium." },
+  { sym: "C",  name: "kol",       z: 6,  hard: true, traps: ["Ca", "Cu", "Cr", "Cl"], tip: "Från latinets <i>carbo</i> (engelska: carbon)." },
+  { sym: "N",  name: "kväve",     z: 7,  hard: true, traps: ["Ni", "Na", "Ne"],       tip: "Från <i>nitrogenium</i> (engelska: nitrogen)." },
+  { sym: "O",  name: "syre",      z: 8,  hard: true, traps: ["H", "S"],               tip: "Från <i>oxygenium</i> (engelska: oxygen)." },
+  { sym: "F",  name: "fluor",     z: 9,              traps: ["Fe", "P"],              tip: "F som i fluor. Inte Fe, det är järn." },
+  { sym: "Ne", name: "neon",      z: 10,             traps: ["Na", "N", "Ni"],        tip: "De två första bokstäverna i neon." },
+  { sym: "Na", name: "natrium",   z: 11,             traps: ["N", "Ni", "Ne"],        tip: "De två första bokstäverna i natrium. Inte N, det är kväve." },
+  { sym: "Mg", name: "magnesium", z: 12,             traps: ["Ag", "Hg"],             tip: "M och g från magnesium." },
+  { sym: "Al", name: "aluminium", z: 13,             traps: ["Ag", "Au"],             tip: "De två första bokstäverna i aluminium." },
+  { sym: "Si", name: "kisel",     z: 14, hard: true, traps: ["S", "Sn", "Sr"],        tip: "Från <i>silicium</i> (engelska: silicon, som i Silicon Valley)." },
+  { sym: "P",  name: "fosfor",    z: 15, hard: true, traps: ["Pt", "Pb", "F"],        tip: "Från latinets <i>phosphorus</i>. Stavas med P, fast det låter som F." },
+  { sym: "S",  name: "svavel",    z: 16,             traps: ["Si", "Sn", "Sr"],       tip: "S som i svavel. Si är kisel." },
+  { sym: "Cl", name: "klor",      z: 17, hard: true, traps: ["C", "Ca", "Cu", "Cr"],  tip: "Från <i>chlorum</i> (engelska: chlorine)." },
+  { sym: "K",  name: "kalium",    z: 19,             traps: ["Ca", "C"],              tip: "K som i kalium. Blanda inte ihop med kalcium, som är Ca." },
+  { sym: "Ca", name: "kalcium",   z: 20,             traps: ["K", "C", "Cu", "Cl"],   tip: "Skrivs <i>calcium</i> på latin och engelska, därför Ca." },
+  { sym: "Ti", name: "titan",     z: 22,             traps: ["Sn", "Pt"],             tip: "De två första bokstäverna i titan. Tenn är Sn." },
+  { sym: "Cr", name: "krom",      z: 24,             traps: ["C", "Cu", "Cl"],        tip: "Från <i>chromium</i>, som webbläsaren Chrome." },
+  { sym: "Fe", name: "järn",      z: 26, hard: true, traps: ["F", "Pb"],              tip: "Från latinets <i>ferrum</i>." },
+  { sym: "Ni", name: "nickel",    z: 28,             traps: ["N", "Na", "Ne"],        tip: "De två första bokstäverna i nickel." },
+  { sym: "Cu", name: "koppar",    z: 29, hard: true, traps: ["C", "Ca", "Cr", "Cl"],  tip: "Från latinets <i>cuprum</i>." },
+  { sym: "Zn", name: "zink",      z: 30,             traps: ["Sn", "Ni", "Rn"],       tip: "Z och n från zink." },
+  { sym: "Sr", name: "strontium", z: 38,             traps: ["S", "Si", "Sn"],        tip: "S och r från strontium." },
+  { sym: "Ag", name: "silver",    z: 47, hard: true, traps: ["Au", "Al", "Hg"],       tip: "Från latinets <i>argentum</i>. Argentina har fått sitt namn efter silver." },
+  { sym: "Sn", name: "tenn",      z: 50, hard: true, traps: ["Si", "S", "Sr", "Ti"],  tip: "Från latinets <i>stannum</i>." },
+  { sym: "I",  name: "jod",       z: 53, hard: true, traps: ["Li", "Ni"],             tip: "Från <i>iodum</i> (engelska: iodine)." },
+  { sym: "Xe", name: "xenon",     z: 54,             traps: ["Ne", "He"],             tip: "De två första bokstäverna i xenon." },
+  { sym: "Pt", name: "platina",   z: 78,             traps: ["P", "Pb"],              tip: "P och t från platina." },
+  { sym: "Au", name: "guld",      z: 79, hard: true, traps: ["Ag", "Al"],             tip: "Från latinets <i>aurum</i>. Tänk: \"Au!\" när guldtackan landar på foten." },
+  { sym: "Hg", name: "kvicksilver", z: 80, hard: true, traps: ["Ag", "H", "He"],      tip: "Från <i>hydrargyrum</i>, som betyder ungefär \"vattensilver\"." },
+  { sym: "Pb", name: "bly",       z: 82, hard: true, traps: ["P", "Pt"],              tip: "Från latinets <i>plumbum</i>. Förr gjordes vattenrör av bly, därav engelskans plumber (rörmokare)." },
+  { sym: "Rn", name: "radon",     z: 86,             traps: ["Zn", "Na", "Ne"],       tip: "R och n från radon." },
+  { sym: "U",  name: "uran",      z: 92,             traps: ["Au", "Cu"],             tip: "U som i uran." },
+];
+const BY_SYM = Object.fromEntries(ELEMENTS.map(e => [e.sym, e]));
+
+// Ämnen till del 5 och 6. atoms = [symbol, x, y] i klotmodellen, och allt annat (grundämne,
+// molekyl, kemisk förening) räknas fram ur dem. Jonföreningar som NaCl och NaOH är med flit inte med:
+// de är kemiska föreningar men inte molekyler, och det är kursinnehåll för senare årskurser.
+const pair = s => [[s, -19, 0], [s, 19, 0]];
+const SUBSTANCES = [
+  { f: "Fe", name: "järn",    atoms: [["Fe", 0, 0]] },
+  { f: "Cu", name: "koppar",  atoms: [["Cu", 0, 0]] },
+  { f: "Ni", name: "nickel",  atoms: [["Ni", 0, 0]] },
+  { f: "Ag", name: "silver",  atoms: [["Ag", 0, 0]] },
+  { f: "Au", name: "guld",    atoms: [["Au", 0, 0]] },
+  { f: "He", name: "helium",  atoms: [["He", 0, 0]] },
+  { f: "Ne", name: "neon",    atoms: [["Ne", 0, 0]] },
+  { f: "H<sub>2</sub>",  name: "vätgas",  atoms: [["H", -13, 0], ["H", 13, 0]] },
+  { f: "O<sub>2</sub>",  name: "syrgas",  atoms: pair("O") },
+  { f: "N<sub>2</sub>",  name: "kvävgas", atoms: pair("N") },
+  { f: "Cl<sub>2</sub>", name: "klorgas", atoms: pair("Cl") },
+  { f: "H<sub>2</sub>O", name: "vatten",  atoms: [["H", -26, 20], ["H", 26, 20], ["O", 0, 0]] },
+  { f: "CO",             name: "kolmonoxid", atoms: [["C", -19, 0], ["O", 19, 0]] },
+  { f: "CO<sub>2</sub>", name: "koldioxid",  atoms: [["O", -38, 0], ["O", 38, 0], ["C", 0, 0]] },
+  { f: "NH<sub>3</sub>", name: "ammoniak",   atoms: [["H", -26, 20], ["H", 26, 20], ["H", 0, -30], ["N", 0, 0]] },
+  { f: "CH<sub>4</sub>", name: "metan",      atoms: [["H", -24, -24], ["H", 24, -24], ["H", -24, 24], ["H", 24, 24], ["C", 0, 0]] },
+  { f: "SO<sub>2</sub>", name: "svaveldioxid", atoms: [["O", -32, 20], ["O", 32, 20], ["S", 0, 0]] },
+  { f: "HCl",            name: "väteklorid", atoms: [["H", -24, 0], ["Cl", 10, 0]] },
+  { f: "H<sub>2</sub>SO<sub>4</sub>", name: "svavelsyra",
+    atoms: [["H", -70, 0], ["H", 70, 0], ["O", -38, 0], ["O", 38, 0], ["O", 0, -38], ["O", 0, 38], ["S", 0, 0]] },
+];
+const MOLECULES = SUBSTANCES.filter(x => x.atoms.length > 1);
+
+const atomKinds = x => [...new Set(x.atoms.map(a => a[0]))];
+// Vad ett ämne är. O2 är både grundämne och molekyl, H2O är både molekyl och kemisk förening.
+function classify(x) {
+  const c = [];
+  if (atomKinds(x).length === 1) c.push("Grundämne");
+  if (x.atoms.length > 1) c.push("Molekyl");
+  if (atomKinds(x).length > 1) c.push("Kemisk förening");
+  return c;
+}
+
+// Faktafrågor om klotmodellen och orden. Första alternativet är det rätta.
+const THEORY = [
+  { topic: "vad klotmodellen är", q: "Vad är klotmodellen?",
+    options: ["En modell där atomer ritas som små klot", "En karta över alla grundämnen", "En modell som visar vad som finns inuti atomen", "En bild av hur tunga olika ämnen är"],
+    expl: "I klotmodellen ritas varje atom som ett litet klot. Det är den enklaste atommodellen." },
+  { topic: "varför man använder modeller", q: "Varför använder man en modell av atomer?",
+    options: ["Den är en förenklad bild som hjälper oss att förstå", "Den visar exakt hur en atom ser ut", "Den gör atomerna större på riktigt", "Den behövs för att skapa nya grundämnen"],
+    expl: "En modell är en förenklad bild av verkligheten. Atomer är inte små färgade kulor, men bilden hjälper oss att förstå hur ämnen är uppbyggda." },
+  { topic: "samma sorts klot", q: "Två klot i en klotmodell är av samma sort. Vad betyder det?",
+    options: ["Atomerna tillhör samma grundämne", "Atomerna är en kemisk förening", "Atomerna är lika stora som molekylen", "Atomerna väger ingenting"],
+    expl: "Varje grundämne har sin egen sorts atomer. Samma sorts klot betyder samma grundämne." },
+  { topic: "vad en atom är", q: "Vad är en atom?",
+    options: ["Den minsta delen av ett grundämne", "Två grundämnen som sitter ihop", "Ett annat ord för molekyl", "Ett ämne som bara finns i luften"],
+    expl: "Atomen är den minsta delen av ett grundämne som fortfarande är det grundämnet." },
+  { topic: "vad en molekyl är", q: "Vad är en molekyl?",
+    options: ["Två eller flera atomer som sitter ihop", "En enda ensam atom", "Alla atomer i ett rum", "Bara atomer av olika slag"],
+    expl: "En molekyl är två eller flera atomer som sitter ihop. De kan vara av samma slag (O<sub>2</sub>) eller olika slag (H<sub>2</sub>O)." },
+  { topic: "vad en kemisk förening är", q: "Vad är en kemisk förening?",
+    options: ["Ett ämne av två eller flera olika grundämnen som sitter ihop", "Ett grundämne med två likadana atomer", "En blandning av saft och vatten", "En enda sorts atomer"],
+    expl: "I en kemisk förening sitter atomer från minst två olika grundämnen ihop, till exempel väte och syre i vatten." },
+  { topic: "siffran i O₂", q: "Vad betyder tvåan i O<sub>2</sub>?",
+    options: ["Två syreatomer sitter ihop", "Två syremolekyler", "Syre är grundämne nummer två", "Syre väger två gram"],
+    expl: "Den lilla siffran efter symbolen visar hur många sådana atomer som finns i molekylen." },
+  { topic: "siffran före en formel", q: "Vad betyder 3 O<sub>2</sub>?",
+    options: ["Tre syremolekyler", "Tre syreatomer", "Två syreatomer", "Sex syremolekyler"],
+    expl: "Siffran före formeln visar antalet molekyler: tre stycken O<sub>2</sub>, med två syreatomer i varje." },
+];
+
+// ---------- Frågor ----------
+const tile = e => `<div class="tile"><small>${e.z}</small><b>${e.sym}</b></div>`;
+const info = e => `<b>${e.sym}</b> är <b>${e.name}</b>. ${e.tip}`;
+const bySub = f => SUBSTANCES.find(x => x.f === f);
+
+// Klotmodell som SVG. Vanliga färger för modeller, och symbolen står på klotet.
+const ATOM_COLOR = { H: ["#ffffff", "#1f2937"], O: ["#dc2626", "#ffffff"], C: ["#374151", "#ffffff"],
+                     N: ["#2563eb", "#ffffff"], Cl: ["#22c55e", "#1f2937"], S: ["#facc15", "#1f2937"] };
+function modelSvg(x) {
+  const r = s => (s === "H" ? 16 : 24);
+  const xs = x.atoms.flatMap(([s, ax]) => [ax - r(s), ax + r(s)]);
+  const ys = x.atoms.flatMap(([s, , ay]) => [ay - r(s), ay + r(s)]);
+  const [x0, y0] = [Math.min(...xs) - 2, Math.min(...ys) - 2];
+  const [w, h] = [Math.max(...xs) + 2 - x0, Math.max(...ys) + 2 - y0];
+  const atoms = x.atoms.map(([s, ax, ay]) => {
+    const [fill, ink] = ATOM_COLOR[s] || ["#94a3b8", "#1f2937"];
+    return `<circle cx="${ax}" cy="${ay}" r="${r(s)}" fill="${fill}" stroke="#1f2937" stroke-width="1.5"/>
+      <text x="${ax}" y="${ay}" fill="${ink}" font-size="${s === "H" ? 15 : 18}" font-weight="700" text-anchor="middle" dominant-baseline="central">${s}</text>`;
+  }).join("");
+  return `<svg class="model" viewBox="${x0} ${y0} ${w} ${h}" width="${w}" height="${h}" role="img" aria-label="Klotmodell">${atoms}</svg>`;
+}
+
+// Del 5: förklaringen räknas fram ur vilka atomer ämnet består av
+function explainSubstance(x) {
+  const kinds = atomKinds(x);
+  const names = kinds.map(s => BY_SYM[s].name);
+  let text;
+  if (x.atoms.length === 1) {
+    text = `<b>${x.name}</b> (${x.f}) är en enda sorts atomer, alltså ett grundämne. Atomerna sitter inte ihop i molekyler.`;
+  } else if (kinds.length === 1) {
+    text = `<b>${x.name}</b> (${x.f}) är två ${names[0]}atomer som sitter ihop. Det är en molekyl, och eftersom det bara finns en sorts atomer är det också ett grundämne.`;
+  } else {
+    text = `<b>${x.name}</b> (${x.f}) består av ${names.join(" och ").replace(/ och (?=.* och )/g, ", ")} som sitter ihop. Det är en molekyl, och eftersom atomerna är av olika slag är det också en kemisk förening.`;
+  }
+  return `<div class="center" style="margin:8px 0">${modelSvg(x)}</div>${text}`;
+}
+
+// Tre andra molekyler, helst med samma sorters atomer som x, så att till exempel CO och CO2 hamnar ihop
+function similarMolecules(x) {
+  const shared = y => atomKinds(y).filter(s => atomKinds(x).includes(s)).length;
+  return shuffle(MOLECULES.filter(y => y !== x)).sort((a, b) => shared(b) - shared(a)).slice(0, 3);
+}
+
+// Tre felaktiga symboler: de lättast förväxlade först, sedan slumpade
+function distractors(e) {
+  const rest = shuffle(ELEMENTS.map(x => x.sym).filter(s => s !== e.sym && !e.traps.includes(s)));
+  return [...shuffle(e.traps), ...rest].slice(0, 3);
+}
+
+const allElements = extra => shuffle(ELEMENTS).map(e => ({ sym: e.sym, topic: `${e.sym} = ${e.name}`, ...extra?.() }));
+const DECKS = {
+  namn: () => allElements(),
+  symbol: () => allElements(),
+  skriv: () => allElements(() => ({ dir: pick(["name", "sym"]) })),
+  amne: () => shuffle(SUBSTANCES).map(x => ({ f: x.f, topic: `${x.name} (${x.f})` })),
+  klot: () => shuffle([
+    ...MOLECULES.map(x => ({ f: x.f, topic: `${x.name} (${x.f})` })),
+    ...THEORY.map((t, th) => ({ th, topic: t.topic })),
+  ]),
+};
+
+const QUESTIONS = {
+  namn(task) {
+    const e = BY_SYM[task.sym];
+    return { type: "mc", correct: e.name, options: shuffle([e.name, ...distractors(e).map(s => BY_SYM[s].name)]),
+      text: `<div class="center">${tile(e)}</div><div class="prompt">Vad heter grundämnet?</div>`, expl: info(e) };
+  },
+  symbol(task) {
+    const e = BY_SYM[task.sym];
+    return { type: "mc", cls: "syms", correct: e.sym, options: shuffle([e.sym, ...distractors(e)]),
+      text: `<div class="word">${e.name}</div><div class="prompt">Vilken kemisk symbol har grundämnet?</div>`, expl: info(e) };
+  },
+  skriv(task) {
+    const e = BY_SYM[task.sym];
+    return task.dir === "name"
+      ? { type: "text", dir: "name", el: e, placeholder: "Namnet",
+          text: `<div class="center">${tile(e)}</div><div class="prompt">Skriv grundämnets namn.</div>` }
+      : { type: "text", dir: "sym", el: e, placeholder: "Symbolen",
+          text: `<div class="word">${e.name}</div><div class="prompt">Skriv den kemiska symbolen. Tänk på stor och liten bokstav!</div>` };
+  },
+  amne(task) {
+    const x = bySub(task.f);
+    return { type: "multi", correct: classify(x), options: ["Grundämne", "Molekyl", "Kemisk förening"],
+      text: `<div class="word">${x.name}</div><div class="center"><div class="tile wide"><b>${x.f}</b></div></div>
+        <div class="prompt">Vad stämmer? Ibland är det mer än ett, så kryssa i alla som stämmer.</div>`,
+      expl: explainSubstance(x) };
+  },
+  klot(task) {
+    if (task.th !== undefined) {
+      const t = THEORY[task.th];
+      return { type: "mc", cls: "long", correct: t.options[0], options: shuffle(t.options),
+        text: `<div class="prompt">${t.q}</div>`, expl: t.expl };
+    }
+    const x = bySub(task.f), others = similarMolecules(x), n = x.atoms.length;
+    const expl = `<div class="center" style="margin:8px 0">${modelSvg(x)}</div><b>${x.name}</b> skrivs ${x.f} och består av ${n} atomer.`;
+    const kind = pick(["formula", "model", "count"]);
+    if (kind === "formula") {
+      return { type: "mc", cls: "syms", correct: x.f, options: shuffle([x.f, ...others.map(y => y.f)]), expl,
+        text: `<div class="center">${modelSvg(x)}</div><div class="prompt" style="margin-top:12px">Vilken formel har molekylen i klotmodellen?</div>` };
+    }
+    if (kind === "model") {
+      return { type: "mc", cls: "models", correct: modelSvg(x), options: shuffle([x, ...others].map(modelSvg)), expl,
+        text: `<div class="word">${x.name}</div><div class="prompt">Vilken klotmodell visar ${x.f}?</div>` };
+    }
+    return { type: "mc", cls: "syms", correct: String(n), options: shuffle([n - 1, n, n + 1, n + 2].map(String)), expl,
+      text: `<div class="center"><div class="tile wide"><b>${x.f}</b></div></div><div class="prompt">Hur många atomer finns det i en sådan här molekyl?</div>` };
+  },
+};
+
+// Rättar ett skrivet svar. "case" = rätt bokstäver men fel stor/liten bokstav i symbolen, vilket räknas som fel.
+function checkText(q, input) {
+  const v = input.trim();
+  if (q.dir === "name") return v.toLowerCase() === q.el.name ? "ok" : "wrong";
+  if (v === q.el.sym) return "ok";
+  return v.toLowerCase() === q.el.sym.toLowerCase() ? "case" : "wrong";
+}
+
+// Para ihop: alla grundämnen uppdelade på sex brädor
+function makeBoards(count = 6) {
+  const s = shuffle(ELEMENTS);
+  return Array.from({ length: count }, (_, i) =>
+    s.slice(Math.round(i * s.length / count), Math.round((i + 1) * s.length / count)));
+}
+
+// Fel svar: samma sak kommer tillbaka efter så här många andra frågor
+const RETRY_AFTER = 3;
+
+// ---------- Gränssnitt ----------
+if (typeof document !== "undefined") {
+  const app = document.getElementById("app");
+  let game = null;
+
+  const TOTALS = { namn: ELEMENTS.length, symbol: ELEMENTS.length, skriv: ELEMENTS.length, para: ELEMENTS.length,
+                   amne: SUBSTANCES.length, klot: MOLECULES.length + THEORY.length };
+  const best = id => {
+    let s = null;
+    try { s = localStorage.getItem("kemi-" + id); } catch {}
+    return s === null ? "–" : `${s}/${TOTALS[id]}`;
+  };
+  const saveBest = (id, s) => {
+    try { if (s > Number(localStorage.getItem("kemi-" + id) || -1)) localStorage.setItem("kemi-" + id, s); } catch {}
+  };
+
+  const menuBtn = (id, title, desc) => `<button class="big" onclick="start('${id}')"><b>${title}</b>
+    <span>${desc} Bästa resultat (rätt direkt): ${best(id)}</span></button>`;
+
+  window.home = function () {
+    game = null;
+    app.innerHTML = `
+      <h1>Kemispelet</h1>
+      <p class="sub">Kemi för åk 7. Svarar du fel kommer samma sak tillbaka lite senare.</p>
+      <div class="menu">
+        <button class="primary big" onclick="learn()"><b>Läs först: grundämnen och molekyler</b>
+          <span style="color:inherit">Alla ${ELEMENTS.length} grundämnen, knep för att minnas dem och klotmodellen.</span></button>
+        ${menuBtn("namn", "Del 1: Vad heter ämnet?", "Du ser symbolen och väljer rätt namn.")}
+        ${menuBtn("symbol", "Del 2: Vilken symbol?", "Du ser namnet och väljer rätt symbol.")}
+        ${menuBtn("para", "Del 3: Para ihop", "Para ihop namn och symboler, som i boken.")}
+        ${menuBtn("skriv", "Del 4: Skriv själv", "Som på provet, utan svarsalternativ.")}
+        ${menuBtn("amne", "Del 5: Grundämne, molekyl eller förening?", "Vad är O<sub>2</sub>? Och H<sub>2</sub>O? Kryssa i alla som stämmer.")}
+        ${menuBtn("klot", "Del 6: Klotmodellen", "Tolka klotmodeller och formler, och lär dig orden.")}
+      </div>`;
+    window.scrollTo(0, 0);
+  };
+
+  window.learn = function () {
+    const row = e => `<div class="el"><div class="tile mini"><small>${e.z}</small><b>${e.sym}</b></div>
+      <div><b>${e.name}</b><span>${e.tip}</span></div></div>`;
+    app.innerHTML = `
+      <div class="top"><button onclick="home()">← Meny</button></div>
+      <h2>Läs först: grundämnena</h2>
+      <div class="card"><h3>De kluriga</h3>
+        <p class="hint" style="margin-top:0">Symbolen liknar inte det svenska namnet, så de här behöver du öva mest på.</p>
+        ${ELEMENTS.filter(e => e.hard).map(row).join("")}</div>
+      <div class="card"><h3>De lättare</h3>
+        <p class="hint" style="margin-top:0">Symbolen kommer oftast från namnet. Se upp med dem som liknar varandra.</p>
+        ${ELEMENTS.filter(e => !e.hard).map(row).join("")}</div>
+      <div class="card"><h3>Grundämne, molekyl och kemisk förening</h3>
+        <p><b>Grundämne:</b> bara en sorts atomer, som Fe och O<sub>2</sub>.<br>
+        <b>Molekyl:</b> två eller flera atomer som sitter ihop, som O<sub>2</sub> och H<sub>2</sub>O.<br>
+        <b>Kemisk förening:</b> atomer från minst två olika grundämnen som sitter ihop, som H<sub>2</sub>O och CO<sub>2</sub>.</p>
+        <p style="margin-bottom:0">Ett ämne kan vara två saker samtidigt: O<sub>2</sub> är både grundämne och molekyl,
+        och H<sub>2</sub>O är både molekyl och kemisk förening.</p></div>
+      <div class="card"><h3>Klotmodellen</h3>
+        <p style="margin-top:4px">Den enklaste atommodellen: varje atom ritas som ett litet klot. Samma sorts klot betyder samma grundämne,
+        och klot som sitter ihop är en molekyl. Färgerna kan se olika ut i olika böcker.</p>
+        <p>I formeln visar den lilla siffran antalet atomer: H<sub>2</sub>O har två väteatomer och en syreatom.
+        Siffran före formeln visar antalet molekyler: 3 O<sub>2</sub> är tre syremolekyler.</p>
+        <div class="gallery">${["O<sub>2</sub>", "H<sub>2</sub>O", "CO", "CO<sub>2</sub>", "NH<sub>3</sub>", "CH<sub>4</sub>"].map(f => {
+          const x = bySub(f);
+          return `<div>${modelSvg(x)}<b>${x.f}</b><span>${x.name}</span></div>`;
+        }).join("")}</div></div>
+      <button class="primary" onclick="home()">Jag är redo – spela!</button>`;
+    window.scrollTo(0, 0);
+  };
+
+  window.start = function (id) {
+    if (id === "para") return startPairs();
+    const queue = DECKS[id]();
+    game = { id, queue, total: queue.length, done: 0, firstTry: 0, missed: new Set(), task: null, q: null, answered: false };
+    next();
+  };
+
+  function next() {
+    game.task = game.queue.shift();
+    game.q = QUESTIONS[game.id](game.task);
+    game.answered = false;
+    render();
+    window.scrollTo(0, 0);
+  }
+
+  function header() {
+    const left = game.queue.length + 1;
+    return `
+      <div class="top"><button onclick="home()">← Meny</button>
+        <span>${left} ${left === 1 ? "fråga" : "frågor"} kvar · Rätt direkt: ${game.firstTry}</span></div>
+      <div class="bar"><i style="width:${(game.done / (game.done + left)) * 100}%"></i></div>
+      ${game.task.retry ? `<span class="tag">🔁 Ny chans</span>` : ""}`;
+  }
+
+  function render() {
+    const q = game.q;
+    if (q.type === "mc") {
+      app.innerHTML = header() + `<div class="card">${q.text}
+        <div class="options ${q.cls || ""}">
+          ${q.options.map((o, i) => `<button data-i="${i}">${o}</button>`).join("")}
+        </div><div id="fb"></div></div>`;
+      app.querySelectorAll(".options button").forEach(b => b.onclick = () => answerMc(b));
+    } else if (q.type === "multi") {
+      app.innerHTML = header() + `<div class="card">${q.text}
+        <div class="options multi">
+          ${q.options.map(o => `<button aria-pressed="false" data-o="${o}">${o}</button>`).join("")}
+        </div>
+        <button class="primary wide-btn" id="go" disabled>Svara</button>
+        <div id="fb"></div></div>`;
+      const boxes = [...app.querySelectorAll(".options button")], go = document.getElementById("go");
+      boxes.forEach(b => b.onclick = () => {
+        b.setAttribute("aria-pressed", b.classList.toggle("sel"));
+        go.disabled = !boxes.some(x => x.classList.contains("sel"));
+      });
+      go.onclick = answerMulti;
+    } else {
+      app.innerHTML = header() + `<div class="card">${q.text}
+        <div class="answer">
+          <input id="inp" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="${q.placeholder}">
+          <button class="primary" id="go">Svara</button>
+        </div>
+        <div id="fb"></div></div>`;
+      const inp = document.getElementById("inp");
+      inp.focus();
+      // preventDefault så att Enter inte också trycker på "Nästa fråga"-knappen som får fokus
+      inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); answerText(); } };
+      document.getElementById("go").onclick = answerText;
+    }
+  }
+
+  function finish(ok, expl) {
+    const task = game.task;
+    if (ok && !task.retry) game.firstTry++;
+    if (!ok) {
+      game.missed.add(task.topic);
+      game.queue.splice(Math.min(RETRY_AFTER, game.queue.length), 0, { ...task, retry: true });
+    }
+    game.answered = true;
+    game.done++;
+    const last = game.queue.length === 0;
+    document.getElementById("fb").innerHTML = `
+      <div class="feedback ${ok ? "good" : "bad"}">
+        <b>${ok ? "Rätt! 🎉" : "Inte riktigt."}</b><br>${expl}
+        ${ok ? "" : "<br><i>Du får en ny fråga om detta lite senare.</i>"}<br>
+        <button class="primary" id="nx">${last ? "Se resultat" : "Nästa fråga"}</button>
+      </div>`;
+    const nx = document.getElementById("nx");
+    nx.focus();
+    nx.onclick = () => (last ? result() : next());
+  }
+
+  function answerMc(btn) {
+    if (game.answered) return;
+    const q = game.q;
+    const ok = q.options[Number(btn.dataset.i)] === q.correct;
+    app.querySelectorAll(".options button").forEach(b => {
+      b.disabled = true;
+      if (q.options[Number(b.dataset.i)] === q.correct) b.classList.add("right");
+    });
+    if (!ok) btn.classList.add("wrong");
+    finish(ok, q.expl);
+  }
+
+  function answerMulti() {
+    if (game.answered) return;
+    const q = game.q, boxes = [...app.querySelectorAll(".options button")];
+    const chosen = boxes.filter(b => b.classList.contains("sel")).map(b => b.dataset.o);
+    const ok = chosen.length === q.correct.length && chosen.every(c => q.correct.includes(c));
+    boxes.forEach(b => {
+      b.disabled = true;
+      if (q.correct.includes(b.dataset.o)) b.classList.add("right");
+      else if (chosen.includes(b.dataset.o)) b.classList.add("wrong");
+    });
+    document.getElementById("go").disabled = true;
+    finish(ok, q.expl);
+  }
+
+  function answerText() {
+    if (game.answered) return;
+    const inp = document.getElementById("inp");
+    if (!inp.value.trim()) { inp.focus(); return; }
+    const q = game.q, verdict = checkText(q, inp.value);
+    inp.disabled = true;
+    document.getElementById("go").disabled = true;
+    const prefix = verdict === "case"
+      ? `Rätt bokstäver, men tänk på stor och liten bokstav. Det ska vara <b>${q.el.sym}</b>.<br>`
+      : verdict === "wrong" ? `Du skrev "${inp.value.trim().replace(/[<>&"]/g, "")}".<br>` : "";
+    finish(verdict === "ok", prefix + info(q.el));
+  }
+
+  function result() {
+    saveBest(game.id, game.firstTry);
+    const s = game.firstTry, n = game.total, id = game.id;
+    const share = s / n;
+    const msg = s === n ? "Perfekt! Allt rätt direkt! 🏆" : share >= 0.8 ? "Mycket bra jobbat! 🌟"
+              : share >= 0.5 ? "Bra! Lite mer övning så sitter det. 👍" : "Fortsätt öva – du blir bättre för varje omgång! 💪";
+    const missed = game.missed.size
+      ? `<p><b>Öva lite extra på:</b></p><ul class="tips">${[...game.missed].map(m => `<li>${m}</li>`).join("")}</ul>`
+      : "";
+    app.innerHTML = `
+      <div class="card"><h2 class="center">Klar!</h2>
+        <div class="score">${s} / ${n}</div>
+        <p class="center">rätt på första försöket<br>${msg}</p>
+        ${missed}
+        <div class="btnrow">
+          <button class="primary" onclick="start('${id}')">Spela igen</button>
+          <button onclick="home()">Till menyn</button>
+        </div></div>`;
+    window.scrollTo(0, 0);
+  }
+
+  // ---------- Del 3: Para ihop ----------
+  function startPairs() {
+    const boards = makeBoards();
+    game = { id: "para", boards, board: 0, total: ELEMENTS.length, firstTry: 0, missed: new Set(), matched: 0 };
+    renderBoard();
+  }
+
+  function renderBoard() {
+    const els = game.boards[game.board];
+    let selName = null, selSym = null, solved = 0;
+    const pct = (game.matched / game.total) * 100;
+    app.innerHTML = `
+      <div class="top"><button onclick="home()">← Meny</button>
+        <span>Bräda ${game.board + 1} av ${game.boards.length} · Rätt direkt: <span id="ft">${game.firstTry}</span></span></div>
+      <div class="bar"><i id="pb" style="width:${pct}%"></i></div>
+      <div class="card">
+        <div class="prompt">Tryck på ett namn och dess symbol.</div>
+        <div class="pairs">
+          <div>${shuffle(els).map(e => `<button class="nm" data-sym="${e.sym}">${e.name}</button>`).join("")}</div>
+          <div>${shuffle(els).map(e => `<button class="sym" data-sym="${e.sym}">${e.sym}</button>`).join("")}</div>
+        </div>
+        <div id="fb"></div>
+      </div>`;
+
+    const tryPair = () => {
+      if (!selName || !selSym) return;
+      const a = selName, b = selSym;
+      selName = selSym = null;
+      a.classList.remove("sel"); b.classList.remove("sel");
+      const e = BY_SYM[a.dataset.sym];
+      if (a.dataset.sym === b.dataset.sym) {
+        a.disabled = b.disabled = true;
+        a.classList.add("right"); b.classList.add("right");
+        if (!game.missed.has(`${e.sym} = ${e.name}`)) document.getElementById("ft").textContent = ++game.firstTry;
+        document.getElementById("pb").style.width = (++game.matched / game.total) * 100 + "%";
+        document.getElementById("fb").innerHTML = "";
+        if (++solved === els.length) boardDone();
+      } else {
+        game.missed.add(`${e.sym} = ${e.name}`);
+        a.classList.add("wrong"); b.classList.add("wrong");
+        document.getElementById("fb").innerHTML =
+          `<div class="feedback bad"><b>${b.dataset.sym}</b> är inte ${e.name}. Försök igen!</div>`;
+        setTimeout(() => { a.classList.remove("wrong"); b.classList.remove("wrong"); }, 700);
+      }
+    };
+
+    app.querySelectorAll(".pairs button").forEach(btn => btn.onclick = () => {
+      if (btn.classList.contains("nm")) {
+        selName?.classList.remove("sel");
+        selName = btn === selName ? null : btn;
+      } else {
+        selSym?.classList.remove("sel");
+        selSym = btn === selSym ? null : btn;
+      }
+      selName?.classList.add("sel");
+      selSym?.classList.add("sel");
+      tryPair();
+    });
+    window.scrollTo(0, 0);
+  }
+
+  function boardDone() {
+    const last = game.board === game.boards.length - 1;
+    document.getElementById("fb").innerHTML = `
+      <div class="feedback good"><b>Hela brädan klar! 🎉</b><br>
+        <button class="primary" id="nx">${last ? "Se resultat" : "Nästa bräda"}</button></div>`;
+    const nx = document.getElementById("nx");
+    nx.focus();
+    nx.onclick = () => {
+      if (last) return result();
+      game.board++;
+      renderBoard();
+    };
+  }
+
+  home();
+}
+
+if (typeof module !== "undefined") module.exports = { ELEMENTS, SUBSTANCES, THEORY, DECKS, QUESTIONS, classify, checkText, makeBoards };
+</script>
+</body>
+</html>
